@@ -81,6 +81,39 @@ Install Cilium
        * Reconfigure kubelet to run in CNI mode
        * Mount the eBPF filesystem
 
+       On a private GKE (i.e. without public IPs) with 'dataplane v1' (kube-proxy) the following must also be configured since
+       Cilium v1.14, otherwise the workload cannot reach the GKE metadata server and therefore it would not be possible to
+       use the workload identity.
+
+       .. parsed-literal::
+
+             --set hostLegacyRouting=true
+
+      Alternatively, this can be omitted if the same functionality is restored using the CiliumLocalRedirectPolicy feature (Beta). Here is an
+      example of what such a configuration might look like.
+
+       .. parsed-literal::
+
+             apiVersion: cilium.io/v2
+             kind: CiliumLocalRedirectPolicy
+             metadata:
+               name: gke-metadata-server-redirect
+               namespace: kube-system
+             spec:
+               redirectBackend:
+                 localEndpointSelector:
+                   matchLabels:
+                     k8s-app: "gke-metadata-server"
+                 toPorts:
+                 - port: "988"
+                   protocol: "TCP"
+               redirectFrontend:
+                 addressMatcher:
+                   ip: "169.254.169.254"
+                   toPorts:
+                   - port: "80"
+                     protocol: "TCP"
+
     .. group-tab:: AKS
 
        .. include:: ../installation/requirements-aks.rst
